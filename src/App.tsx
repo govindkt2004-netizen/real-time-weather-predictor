@@ -28,20 +28,26 @@ import {
 
 import { SIMULATED_ALERTS } from './utils/alertDetection';
 
-// Default fallback location: Bengaluru
-const DEFAULT_LOCATION: GeocodingResult = {
-  id: 1277333,
-  name: 'Bengaluru',
-  latitude: 12.97194,
-  longitude: 77.59369,
-  country: 'India',
-  country_code: 'IN',
-  admin1: 'Karnataka',
-  timezone: 'Asia/Kolkata',
+// Used only while the browser is resolving the device location.
+const INITIAL_LOCATION: GeocodingResult = {
+  id: 0,
+  name: 'Current location',
+  latitude: 0,
+  longitude: 0,
+  country: '',
 };
 
 const POPULAR_CITIES: GeocodingResult[] = [
-  DEFAULT_LOCATION,
+  {
+    id: 1277333,
+    name: 'Bengaluru',
+    latitude: 12.97194,
+    longitude: 77.59369,
+    country: 'India',
+    country_code: 'IN',
+    admin1: 'Karnataka',
+    timezone: 'Asia/Kolkata',
+  },
   {
     id: 2643743,
     name: 'London',
@@ -94,15 +100,7 @@ export default function App() {
 
   // Current active location
   const [location, setLocation] = useState<GeocodingResult>(() => {
-    try {
-      const saved = localStorage.getItem(
-        'weather_dashboard_last_location'
-      );
-
-      return saved ? JSON.parse(saved) : DEFAULT_LOCATION;
-    } catch {
-      return DEFAULT_LOCATION;
-    }
+    return INITIAL_LOCATION;
   });
 
   // Recent searches
@@ -336,7 +334,8 @@ export default function App() {
     const loadInitialLocation = async () => {
       // Check browser geolocation support
       if (!navigator.geolocation) {
-        await loadWeather(location);
+        setError('Location access is not supported by this browser. Please search for a city manually.');
+        setIsLoading(false);
         return;
       }
 
@@ -359,11 +358,8 @@ export default function App() {
             }
           } catch (err: any) {
             if (isMounted) {
-              setError(
-                'Unable to detect your location. Loading saved location.'
-              );
-
-              await loadWeather(location);
+              setError('Unable to identify your current location. Please search for a city manually.');
+              setIsLoading(false);
             }
           } finally {
             if (isMounted) {
@@ -375,37 +371,36 @@ export default function App() {
           if (!isMounted) return;
 
           let message =
-            'Unable to detect your location. Loading saved location.';
+            'Unable to detect your current location. Please search for a city manually.';
 
           switch (geoError.code) {
             case geoError.PERMISSION_DENIED:
               message =
-                'Location access was denied. Loading saved location.';
+                'Location access was denied. Please allow location access or search for a city manually.';
               break;
 
             case geoError.POSITION_UNAVAILABLE:
               message =
-                'Location information is unavailable. Loading saved location.';
+                'Location information is unavailable. Please search for a city manually.';
               break;
 
             case geoError.TIMEOUT:
               message =
-                'Location request timed out. Loading saved location.';
+                'Location request timed out. Please try again or search for a city manually.';
               break;
           }
 
           setError(message);
-
-          await loadWeather(location);
+          setIsLoading(false);
 
           if (isMounted) {
             setIsLocating(false);
           }
         },
         {
-          enableHighAccuracy: false,
-          timeout: 10000,
-          maximumAge: 300000,
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
         }
       );
     };
