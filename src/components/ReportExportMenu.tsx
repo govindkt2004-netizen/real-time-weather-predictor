@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, FileCode, Check, ChevronDown, Loader2 } from 'lucide-react';
-import { ProcessedWeatherData, TemperatureUnit, ComparisonWeather } from '../types';
-import { downloadPdfReport, downloadTextReport } from '../services/reportGenerator';
+import {
+  Download,
+  FileText,
+  Check,
+  ChevronDown,
+  Loader2,
+} from 'lucide-react';
+import {
+  ProcessedWeatherData,
+  TemperatureUnit,
+  ComparisonWeather,
+} from '../types';
+import { downloadPdfReport } from '../services/reportGenerator';
 
 interface ReportExportMenuProps {
   weatherData: ProcessedWeatherData;
@@ -17,51 +27,60 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
   variant = 'card',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [downloadingFormat, setDownloadingFormat] = useState<'pdf' | 'txt' | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
-  const handleDownload = async (format: 'pdf' | 'txt') => {
-    setDownloadingFormat(format);
+  const handleDownload = async () => {
+    setIsDownloading(true);
+
     try {
-      if (format === 'pdf') {
-        downloadPdfReport(weatherData, unit, comparisonWeather);
-        setSuccessMessage('PDF downloaded');
-      } else {
-        downloadTextReport(weatherData, unit, comparisonWeather);
-        setSuccessMessage('Text report downloaded');
-      }
+      downloadPdfReport(weatherData, unit, comparisonWeather);
+
+      setSuccessMessage('PDF downloaded');
+
       setTimeout(() => {
         setSuccessMessage(null);
         setIsOpen(false);
       }, 1400);
-    } catch (err) {
-      console.error('Download error:', err);
+    } catch (error) {
+      console.error('Download error:', error);
     } finally {
-      setDownloadingFormat(null);
+      setIsDownloading(false);
     }
   };
 
   const isHeader = variant === 'header';
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div
+      className="relative inline-block text-left"
+      ref={menuRef}
+    >
       {/* Trigger Button */}
       <button
         id={`download-report-btn-${variant}`}
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => setIsOpen((previous) => !previous)}
         aria-haspopup="true"
         aria-expanded={isOpen}
         className={
@@ -72,7 +91,11 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
         title="Download weather report for offline viewing"
       >
         <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
-        <span>{isHeader ? 'Report' : 'Download Report'}</span>
+
+        <span>
+          {isHeader ? 'Report' : 'Download Report'}
+        </span>
+
         <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
       </button>
 
@@ -86,6 +109,7 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
               Offline Weather Report
             </span>
+
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
               Save {weatherData.location.name}&apos;s live snapshot for offline viewing
             </span>
@@ -98,62 +122,35 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
             </div>
           ) : (
             <div className="p-1 space-y-1">
-              {/* Option 1: PDF Document */}
+              {/* PDF Document Option */}
               <button
                 id="download-pdf-option-btn"
                 type="button"
-                disabled={downloadingFormat !== null}
-                onClick={() => handleDownload('pdf')}
-                className="w-full text-left p-2.5 rounded-lg hover:bg-sky-50 dark:hover:bg-slate-800 flex items-start gap-3 transition-colors group cursor-pointer"
+                disabled={isDownloading}
+                onClick={handleDownload}
+                className="w-full text-left p-2.5 rounded-lg hover:bg-sky-50 dark:hover:bg-slate-800 flex items-start gap-3 transition-colors group cursor-pointer disabled:opacity-60"
               >
                 <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
-                  {downloadingFormat === 'pdf' ? (
+                  {isDownloading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-rose-600" />
                   ) : (
                     <FileText className="w-4 h-4" />
                   )}
                 </div>
+
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       PDF Document (.pdf)
                     </span>
+
                     <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
                       Printable
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                    Full visual summary with atmospheric metrics, comparison delta, & 7-day forecast table.
-                  </p>
-                </div>
-              </button>
 
-              {/* Option 2: Text / ASCII Report */}
-              <button
-                id="download-txt-option-btn"
-                type="button"
-                disabled={downloadingFormat !== null}
-                onClick={() => handleDownload('txt')}
-                className="w-full text-left p-2.5 rounded-lg hover:bg-sky-50 dark:hover:bg-slate-800 flex items-start gap-3 transition-colors group cursor-pointer"
-              >
-                <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 shrink-0 group-hover:scale-105 transition-transform">
-                  {downloadingFormat === 'txt' ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                  ) : (
-                    <FileCode className="w-4 h-4" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Plain Text Report (.txt)
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
-                      Lightweight
-                    </span>
-                  </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                    ASCII-formatted text file readable in any text editor, notepad, or terminal without PDF software.
+                    Full visual summary with atmospheric metrics, comparison delta, and 7-day forecast table.
                   </p>
                 </div>
               </button>
