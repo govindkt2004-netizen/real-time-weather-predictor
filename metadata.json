@@ -1,0 +1,6 @@
+{
+  "name": "Real-Time Weather Dashboard",
+  "description": "Live weather dashboard powered by Open-Meteo REST API, featuring offline PDF and text weather summary downloads, real-time city temperature comparison with live delta calculation, integrated geographical map, severe weather alerts, hourly and 7-day forecasts, and atmospheric metrics.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
